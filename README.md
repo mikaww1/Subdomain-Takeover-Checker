@@ -2,8 +2,7 @@
 
 A fast, lightweight tool to detect subdomain takeover vulnerabilities. Built for bug bounty hunters, CTF players, and developers who want to audit their own domains.
 
-🔗 **Live tool: [subdomchecker.up.railway.app](https://web-production-2d68c.up.railway.app/)**
-
+🔗 **Live tool: [subdomainchecker.com](https://subdomainchecker.com)**
 ---
 
 ## What is a subdomain takeover?
