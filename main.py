@@ -45,6 +45,7 @@ FINGERPRINTS = {
     "blob.core.windows.net":  "BlobServiceProperties",
     "cloudapp.net":           "404 Not Found",
     "elasticbeanstalk.com":   "404 Not Found",
+    "cloudfront.net":         "ERROR: The request could not be satisfied",
 
     # SaaS / support
     "helpscoutdocs.com":      "No settings were found",
