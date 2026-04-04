@@ -1,4 +1,4 @@
-# Subdomain Checker
+# Subdomain Takeover Checker
 
 A fast, lightweight tool to detect subdomain takeover vulnerabilities. Built for bug bounty hunters, CTF players, and developers who want to audit their own domains.
 
