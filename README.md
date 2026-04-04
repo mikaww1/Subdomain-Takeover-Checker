@@ -1,4 +1,4 @@
-# Subdomain Checker
+# Subdomain Takeover Checker
 
 A fast, lightweight tool to detect subdomain takeover vulnerabilities. Built for bug bounty hunters, CTF players, and developers who want to audit their own domains.
 
@@ -24,12 +24,12 @@ GitHub Pages, Heroku, AWS S3, Fastly, Netlify, Vercel, Cloudflare Pages, Azure, 
 ## Usage
 
 ### Web
-Visit the live tool at [subdomchecker.up.railway.app](https://web-production-2d68c.up.railway.app/) and enter a subdomain.
+Visit the live tool at [subdomainchecker.com](https://subdomainchecker.com) and enter a subdomain.
 
 ### CLI
 
 ```bash
-git clone https://github.com/mikaww1/SubdomChecker.git
+git clone https://github.com/mikaww1/Subdomain-Takeover-Checker.git
 cd SubdomChecker
 pip install -r requirements.txt
 python main.py shop.example.com
