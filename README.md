@@ -29,7 +29,7 @@ Visit the live tool at [subdomainchecker.com](https://subdomainchecker.com) and 
 ### CLI
 
 ```bash
-git clone https://github.com/mikaww1/SubdomChecker.git
+git clone https://github.com/mikaww1/Subdomain-Takeover-Checker.git
 cd SubdomChecker
 pip install -r requirements.txt
 python main.py shop.example.com
