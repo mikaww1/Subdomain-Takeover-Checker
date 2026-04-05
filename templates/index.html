@@ -131,7 +131,7 @@
     letter-spacing: 0.05em;
   }
 
-  .mode-btn:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+  .mode-btn:hover { border-color: var(--accent); color: var(--accent); }
   .mode-btn:active { transform: scale(0.97); }
   .mode-btn.active {
     background: rgba(0,255,136,0.1);
@@ -207,7 +207,10 @@
     font-size: 0.72rem;
     color: var(--text-dim);
     margin-left: auto;
+    transition: color 0.2s;
   }
+
+  .bulk-count.over { color: var(--danger); }
 
   /* ── Shared button ── */
   button.primary {
@@ -225,8 +228,8 @@
     white-space: nowrap;
   }
 
-  button.primary:hover  { opacity: 0.88; }
-  button.primary:active { transform: scale(0.97); }
+  button.primary:hover   { opacity: 0.88; }
+  button.primary:active  { transform: scale(0.97); }
   button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
   /* ── Loader ── */
@@ -270,7 +273,7 @@
   }
   #result.visible { display: block; }
 
-  /* Single result card */
+  /* ── Single result card ── */
   .result-card {
     border-radius: 10px;
     border: 1px solid var(--border);
@@ -409,9 +412,9 @@
   .bulk-table tr:last-child td { border-bottom: none; }
   .bulk-table tr:hover td { background: rgba(255,255,255,0.02); }
 
-  .bulk-table tr.row-vuln td:first-child { border-left: 2px solid var(--danger); }
-  .bulk-table tr.row-safe td:first-child { border-left: 2px solid var(--accent); }
-  .bulk-table tr.row-unk  td:first-child { border-left: 2px solid var(--warn); }
+  .bulk-table tr.row-vuln td:first-child    { border-left: 2px solid var(--danger); }
+  .bulk-table tr.row-safe td:first-child    { border-left: 2px solid var(--accent); }
+  .bulk-table tr.row-unk  td:first-child    { border-left: 2px solid var(--warn); }
   .bulk-table tr.row-pending td:first-child { border-left: 2px solid var(--border); }
 
   .bulk-table td.subdomain-col { color: var(--accent2); word-break: break-all; }
@@ -476,7 +479,7 @@
     <div class="bulk-wrap" id="bulkWrap">
       <textarea
         id="bulkInput"
-        placeholder="One subdomain per line:&#10;dev.example.com&#10;staging.example.com&#10;api.example.com"
+        placeholder="One subdomain per line&#10;&#10;dev.example.com&#10;staging.example.com&#10;api.example.com"
         spellcheck="false"
         autocomplete="off"
       ></textarea>
@@ -486,7 +489,7 @@
       </div>
     </div>
 
-    <!-- Loader -->
+    <!-- Loader (single mode only) -->
     <div class="loader" id="loader">
       <div class="spinner"></div>
       <span id="loaderText">Resolving CNAME chain...</span>
@@ -503,9 +506,11 @@
 </div>
 
 <script>
-  // ── State ──────────────────────────────────────────────────────────────
-  let mode = "single";
+  // ── Constants ──────────────────────────────────────────────────────────
+  const BULK_LIMIT      = 10;   // must match "10 per minute" in api.py
+  const REQUEST_DELAY   = 300;  // ms between bulk requests
 
+  // ── DOM refs ───────────────────────────────────────────────────────────
   const singleInput = document.getElementById("subdomainInput");
   const bulkInput   = document.getElementById("bulkInput");
   const checkBtn    = document.getElementById("checkBtn");
@@ -517,19 +522,21 @@
 
   // ── Mode toggle ────────────────────────────────────────────────────────
   function setMode(m) {
-    mode = m;
     document.getElementById("btnSingle").classList.toggle("active", m === "single");
-    document.getElementById("btnBulk").classList.toggle("active", m === "bulk");
+    document.getElementById("btnBulk").classList.toggle("active",   m === "bulk");
     document.getElementById("singleWrap").style.display = m === "single" ? "flex" : "none";
     document.getElementById("bulkWrap").classList.toggle("visible", m === "bulk");
     resultEl.classList.remove("visible");
     resultEl.innerHTML = "";
+    stopLoader();
   }
 
-  // Update subdomain count as user types
+  // ── Bulk count display ─────────────────────────────────────────────────
   bulkInput.addEventListener("input", () => {
-    const lines = parseBulkInput();
-    bulkCount.textContent = `${lines.length} subdomain${lines.length !== 1 ? "s" : ""}`;
+    const n    = parseBulkInput().length;
+    const over = n > BULK_LIMIT;
+    bulkCount.textContent = `${n} subdomain${n !== 1 ? "s" : ""}${over ? ` — max ${BULK_LIMIT}` : ""}`;
+    bulkCount.classList.toggle("over", over);
   });
 
   function parseBulkInput() {
@@ -539,10 +546,10 @@
       .filter(l => l.length > 0);
   }
 
-  // Enter key for single mode
+  // Enter key in single mode
   singleInput.addEventListener("keydown", e => { if (e.key === "Enter") runSingle(); });
 
-  // ── Loader ────────────────────────────────────────────────────────────
+  // ── Loader (single mode) ───────────────────────────────────────────────
   const loaderMessages = [
     "Resolving CNAME chain...",
     "Checking wildcard DNS...",
@@ -552,16 +559,14 @@
 
   let msgInterval = null;
 
-  function startLoader(msg) {
+  function startLoader() {
     loader.classList.add("visible");
-    loaderText.textContent = msg || loaderMessages[0];
-    if (!msg) {
-      let idx = 0;
-      msgInterval = setInterval(() => {
-        idx = (idx + 1) % loaderMessages.length;
-        loaderText.textContent = loaderMessages[idx];
-      }, 1800);
-    }
+    loaderText.textContent = loaderMessages[0];
+    let idx = 0;
+    msgInterval = setInterval(() => {
+      idx = (idx + 1) % loaderMessages.length;
+      loaderText.textContent = loaderMessages[idx];
+    }, 1800);
   }
 
   function stopLoader() {
@@ -581,9 +586,9 @@
 
     try {
       const res  = await fetch("/check", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subdomain }),
+        body:    JSON.stringify({ subdomain }),
       });
       const data = await res.json();
       stopLoader();
@@ -601,35 +606,57 @@
     const subdomains = parseBulkInput();
     if (!subdomains.length) { bulkInput.focus(); return; }
 
+    if (subdomains.length > BULK_LIMIT) {
+      resultEl.innerHTML = "";
+      renderError(`Bulk mode is limited to ${BULK_LIMIT} subdomains at a time.`);
+      resultEl.classList.add("visible");
+      return;
+    }
+
     bulkBtn.disabled = true;
     resultEl.classList.remove("visible");
     resultEl.innerHTML = "";
 
-    // Render table immediately with pending rows, then fill in results live
     renderBulkTable(subdomains);
     resultEl.classList.add("visible");
 
     const results = [];
     for (let i = 0; i < subdomains.length; i++) {
-      updateBulkRow(i, null); // spinner
+      updateBulkRow(i, null); // show spinner on current row
+
+      if (i > 0) await sleep(REQUEST_DELAY); // space out requests
+
       try {
         const res  = await fetch("/check", {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subdomain: subdomains[i] }),
+          body:    JSON.stringify({ subdomain: subdomains[i] }),
         });
         const data = await res.json();
-        results.push(data);
-        updateBulkRow(i, data);
+
+        // Surface rate limit errors clearly in the table
+        if (res.status === 429 || (data.error && data.error.toLowerCase().includes("too many"))) {
+          const r = { subdomain: subdomains[i], error: "Rate limit hit — wait a moment and try again" };
+          results.push(r);
+          updateBulkRow(i, r);
+        } else {
+          results.push(data);
+          updateBulkRow(i, data);
+        }
       } catch (err) {
-        const errResult = { subdomain: subdomains[i], error: "Request failed" };
-        results.push(errResult);
-        updateBulkRow(i, errResult);
+        const r = { subdomain: subdomains[i], error: "Request failed" };
+        results.push(r);
+        updateBulkRow(i, r);
       }
+
       updateBulkSummary(results, subdomains.length);
     }
 
     bulkBtn.disabled = false;
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   // ── Bulk table ─────────────────────────────────────────────────────────
@@ -637,7 +664,7 @@
     resultEl.innerHTML = `
       <div class="bulk-results">
         <div class="bulk-summary" id="bulkSummary">
-          <strong>${subdomains.length}</strong> subdomains &nbsp;·&nbsp;
+          <strong>${subdomains.length}</strong> subdomain${subdomains.length !== 1 ? "s" : ""} &nbsp;·&nbsp;
           <span>checking...</span>
         </div>
         <table class="bulk-table">
@@ -673,17 +700,17 @@
 
     if (d.error) {
       row.className = "row-unk";
-      row.cells[1].innerHTML = `<span class="badge unk">ERROR</span>`;
+      row.cells[1].innerHTML  = `<span class="badge unk">ERROR</span>`;
       row.cells[2].textContent = "—";
       row.cells[3].textContent = d.error;
       return;
     }
 
     const { cls, badgeCls, badgeText } = statusAttrs(d);
-    row.className = `row-${cls}`;
-    row.cells[1].innerHTML = `<span class="badge ${badgeCls}">${badgeText}</span>`;
-    row.cells[2].textContent = d.service || "—";
-    row.cells[3].textContent = d.reason  || "—";
+    row.className             = `row-${cls}`;
+    row.cells[1].innerHTML    = `<span class="badge ${badgeCls}">${badgeText}</span>`;
+    row.cells[2].textContent  = d.service || "—";
+    row.cells[3].textContent  = d.reason  || "—";
   }
 
   function updateBulkSummary(results, total) {
@@ -693,7 +720,7 @@
     const done    = results.length;
 
     document.getElementById("bulkSummary").innerHTML = `
-      <strong>${total}</strong> subdomains &nbsp;·&nbsp;
+      <strong>${total}</strong> subdomain${total !== 1 ? "s" : ""} &nbsp;·&nbsp;
       ${done < total ? `<span>${done}/${total} checked</span> &nbsp;·&nbsp;` : ""}
       <span class="summary-pill vuln">${vuln} vulnerable</span>
       <span class="summary-pill unk">${unknown} unknown</span>
@@ -713,7 +740,8 @@
     if (d.error) { renderError(d.error); return; }
 
     const { cls, badgeCls, badgeText } = statusAttrs(d);
-    const iconMap  = { vuln: "⚠", safe: "✓", unk: "?" };
+
+    const iconMap = { vuln: "⚠", safe: "✓", unk: "?" };
     const labelMap = {
       vuln: "Subdomain takeover possible",
       safe: d.confidence === "n/a" ? "No external service found" : "No takeover detected",
