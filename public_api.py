@@ -44,6 +44,40 @@ def check():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/bulk_check", methods=["POST"])
+@limiter.limit("10 per minute")
+def bulk_check():
+    if RAPIDAPI_SECRET and not verify_rapidapi(request):
+        return jsonify({"error": "Forbidden"}), 403
+
+    data = request.get_json()
+    if not data or "subdomains" not in data:
+        return jsonify({"error": "Missing required field: subdomains"}), 400
+
+    subdomains = data["subdomains"]
+    if not isinstance(subdomains, list) or len(subdomains) == 0:
+        return jsonify({"error": "subdomains must be a non-empty list"}), 400
+
+    if len(subdomains) > 25:
+        return jsonify({"error": "Maximum 25 subdomains per request"}), 400
+
+    results = []
+    for subdomain in subdomains:
+        subdomain = normalize(subdomain.strip())
+        if not subdomain:
+            continue
+        try:
+            result = check_subdomain(subdomain)
+            results.append(result)
+        except Exception as e:
+            results.append({"subdomain": subdomain, "error": str(e)})
+
+    return jsonify({
+        "total": len(results),
+        "vulnerable_count": sum(1 for r in results if r.get("vulnerable")),
+        "results": results
+    })
+
 
 @app.route("/health", methods=["GET"])
 def health():
