@@ -272,6 +272,7 @@
 
   .trust a { color: var(--accent); text-decoration: none; }
   .trust a:hover { text-decoration: underline; }
+
   .disclaimer {
     margin-top: 0.75rem;
     text-align: center;
@@ -526,6 +527,21 @@
     margin: 0.5rem 0;
   }
 
+  /* ── Enum info box ── */
+  .enum-info {
+    margin-bottom: 0.85rem;
+    padding: 0.6rem 0.85rem;
+    background: rgba(0,200,255,0.05);
+    border: 1px solid rgba(0,200,255,0.15);
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    display: none;
+  }
+  .enum-info.visible { display: block; }
+
   /* ── Mobile ── */
   @media (max-width: 480px) {
     body {
@@ -538,7 +554,6 @@
 
     .card { padding: 1rem; }
 
-    /* Stack input + button vertically on mobile */
     .input-row {
       flex-direction: column;
       gap: 0.6rem;
@@ -555,7 +570,6 @@
       font-size: 0.88rem;
     }
 
-    /* Hide Service and Details columns on mobile — too cramped */
     .bulk-table th:nth-child(3),
     .bulk-table th:nth-child(4),
     .bulk-table td:nth-child(3),
@@ -564,7 +578,6 @@
     .bulk-table th,
     .bulk-table td { padding: 0.6rem 0.75rem; }
 
-    /* Stack result rows vertically */
     .row { flex-direction: column; gap: 0.2rem; }
     .row-label { min-width: unset; }
 
@@ -599,6 +612,7 @@
     <div class="mode-toggle">
       <button class="mode-btn active" id="btnSingle" onclick="setMode('single')">Single</button>
       <button class="mode-btn" id="btnBulk" onclick="setMode('bulk')">Bulk</button>
+      <button class="mode-btn" id="btnEnum" onclick="setMode('enum')">Enumerate</button>
     </div>
 
     <!-- Single mode -->
@@ -629,19 +643,37 @@
       </div>
     </div>
 
-    <!-- Loader (single mode only) -->
+    <!-- Enumerate mode -->
+    <div id="enumWrap" style="display:none">
+      <div class="enum-info visible">
+        Queries certificate transparency logs (crt.sh) to find all known subdomains, then checks each one for takeover vulnerabilities. Limited to 10 subdomains at a time.
+      </div>
+      <div class="input-row">
+        <input
+          type="text"
+          id="enumInput"
+          placeholder="e.g. example.com"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Root domain to enumerate"
+        />
+        <button class="primary" id="enumBtn" onclick="runEnum()">Enumerate</button>
+      </div>
+    </div>
+
+    <!-- Loader -->
     <div class="loader" id="loader">
       <div class="spinner"></div>
       <span id="loaderText">Resolving CNAME chain...</span>
     </div>
 
     <div class="trust">
-  No data stored • DNS checks only • No logging<br>
-  <a href="https://github.com/mikaww1/Subdomain-Checker" target="_blank">View source on GitHub</a>
-  &nbsp;·&nbsp;
-  <a href="https://rapidapi.com/mikaww1/api/subdomain-takeover-checker" target="_blank">API on RapidAPI</a>
-</div>
-      <p class="disclaimer">
+      No data stored • DNS checks only • No logging<br>
+      <a href="https://github.com/mikaww1/Subdomain-Checker" target="_blank">View source on GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://rapidapi.com/mikaww1/api/subdomain-takeover-checker" target="_blank">API on RapidAPI</a>
+    </div>
+    <p class="disclaimer">
       Only use this tool on domains you own or have explicit permission to test.
     </p>
   </div>
@@ -703,8 +735,10 @@
   function setMode(m) {
     document.getElementById("btnSingle").classList.toggle("active", m === "single");
     document.getElementById("btnBulk").classList.toggle("active",   m === "bulk");
-    document.getElementById("singleWrap").style.display = m === "single" ? "flex" : "none";
+    document.getElementById("btnEnum").classList.toggle("active",   m === "enum");
+    document.getElementById("singleWrap").style.display  = m === "single" ? "flex" : "none";
     document.getElementById("bulkWrap").classList.toggle("visible", m === "bulk");
+    document.getElementById("enumWrap").style.display    = m === "enum"   ? "block" : "none";
     resultEl.classList.remove("visible");
     resultEl.innerHTML = "";
     stopLoader();
@@ -723,6 +757,7 @@
   }
 
   singleInput.addEventListener("keydown", e => { if (e.key === "Enter") runSingle(); });
+  document.getElementById("enumInput").addEventListener("keydown", e => { if (e.key === "Enter") runEnum(); });
 
   // ── Loader ────────────────────────────────────────────────────────────
   const loaderMessages = [
@@ -824,11 +859,72 @@
     bulkBtn.disabled = false;
   }
 
+  // ── Enumerate check ────────────────────────────────────────────────────
+  async function runEnum() {
+    const domain = document.getElementById("enumInput").value.trim();
+    if (!domain) { document.getElementById("enumInput").focus(); return; }
+
+    const enumBtn = document.getElementById("enumBtn");
+    enumBtn.disabled = true;
+    resultEl.innerHTML = `<div class="error-msg" style="color:var(--accent2); border-color:rgba(0,200,255,0.25); background:rgba(0,200,255,0.05)">⏳ Querying certificate transparency logs for ${escHtml(domain)}...</div>`;
+    resultEl.classList.add("visible");
+
+    try {
+      const resp = await fetch(`https://crt.sh/?q=%.${encodeURIComponent(domain)}&output=json`);
+      if (!resp.ok) throw new Error("crt.sh unavailable — try again in a moment");
+
+      const entries = await resp.json();
+      const subdomains = new Set();
+
+      for (const entry of entries) {
+        const names = (entry.name_value || "").split("\n");
+        for (const name of names) {
+          const sub = name.trim().replace(/^\*\./, "");
+          if (sub && sub.endsWith(domain) && sub !== domain) {
+            subdomains.add(sub.toLowerCase());
+          }
+        }
+      }
+
+      const list = [...subdomains].sort();
+
+      if (list.length === 0) {
+        resultEl.innerHTML = `<div class="error-msg">No subdomains found in certificate logs for ${escHtml(domain)}</div>`;
+        return;
+      }
+
+      // Take first BULK_LIMIT subdomains and run bulk check
+      const limited = list.slice(0, BULK_LIMIT);
+      bulkInput.value = limited.join("\n");
+      bulkInput.dispatchEvent(new Event("input"));
+
+      // Show info if we truncated
+      resultEl.classList.remove("visible");
+      resultEl.innerHTML = "";
+
+      if (list.length > BULK_LIMIT) {
+        resultEl.innerHTML = `<div class="error-msg" style="color:var(--warn); border-color:rgba(255,200,0,0.25); background:rgba(255,200,0,0.05); margin-bottom:0.75rem">⚠ Found ${list.length} subdomains — checking first ${BULK_LIMIT}</div>`;
+        resultEl.classList.add("visible");
+      }
+
+      setMode("bulk");
+      await runBulk();
+
+    } catch (err) {
+      resultEl.innerHTML = `<div class="error-msg">✗ ${escHtml(err.message)}</div>`;
+      resultEl.classList.add("visible");
+    } finally {
+      enumBtn.disabled = false;
+    }
+  }
+
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   // ── Bulk table ─────────────────────────────────────────────────────────
   function renderBulkTable(subdomains) {
-    resultEl.innerHTML = `
+    const existing = resultEl.innerHTML;
+    const warning = existing.includes("Found") ? existing : "";
+    resultEl.innerHTML = warning + `
       <div class="bulk-results">
         <div class="bulk-summary" id="bulkSummary">
           <strong>${subdomains.length}</strong> subdomain${subdomains.length !== 1 ? "s" : ""} &nbsp;·&nbsp;
