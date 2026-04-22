@@ -5,6 +5,7 @@ from flask_limiter.util import get_remote_address
 from main import check_subdomain, normalize
 from dotenv import load_dotenv
 import os
+import requests
 
 load_dotenv()
 
