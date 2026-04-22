@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 import os
 import requests
 
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; subtake/1.0)"}
+
 load_dotenv()
 
 app = Flask(__name__)
