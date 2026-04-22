@@ -5,9 +5,7 @@ from flask_limiter.util import get_remote_address
 from main import check_subdomain, normalize
 from dotenv import load_dotenv
 import os
-import requests
 
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; subtake/1.0)"}
 
 load_dotenv()
 
@@ -80,49 +78,6 @@ def bulk_check():
         "vulnerable_count": sum(1 for r in results if r.get("vulnerable")),
         "results": results
     })
-
-@app.route("/enumerate", methods=["GET"])
-@limiter.limit("10 per minute")
-def enumerate_subdomains():
-    if RAPIDAPI_SECRET and not verify_rapidapi(request):
-        return jsonify({"error": "Forbidden"}), 403
-
-    domain = request.args.get("domain", "").strip()
-    if not domain:
-        return jsonify({"error": "Missing required parameter: domain"}), 400
-
-    domain = normalize(domain)
-    if not domain:
-        return jsonify({"error": "Invalid domain"}), 400
-
-    try:
-        # Query crt.sh
-        url = f"https://crt.sh/?q=%.{domain}&output=json"
-        resp = requests.get(url, timeout=30, headers={**HEADERS, "Accept": "application/json"})
-        if resp.status_code != 200:
-            return jsonify({"error": "crt.sh unavailable, try again later"}), 502
-
-        entries = resp.json()
-
-        # Extract unique subdomains
-        subdomains = set()
-        for entry in entries:
-            name = entry.get("name_value", "")
-            for sub in name.split("\n"):
-                sub = sub.strip().lstrip("*.")
-                if sub and sub.endswith(domain) and sub != domain:
-                    subdomains.add(sub.lower())
-
-        subdomains = sorted(subdomains)
-
-        return jsonify({
-            "domain": domain,
-            "total": len(subdomains),
-            "subdomains": subdomains
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/health", methods=["GET"])
