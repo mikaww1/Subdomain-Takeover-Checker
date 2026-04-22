@@ -98,7 +98,7 @@ def enumerate_subdomains():
     try:
         # Query crt.sh
         url = f"https://crt.sh/?q=%.{domain}&output=json"
-        resp = requests.get(url, timeout=15, headers=HEADERS)
+        resp = requests.get(url, timeout=30, headers={**HEADERS, "Accept": "application/json"})
         if resp.status_code != 200:
             return jsonify({"error": "crt.sh unavailable, try again later"}), 502
 
