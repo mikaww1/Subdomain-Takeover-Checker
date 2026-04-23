@@ -911,10 +911,11 @@
       await runBulk();
 
     } catch (err) {
-      resultEl.innerHTML = `<div class="error-msg">✗ ${escHtml(err.message)}</div>`;
+      const msg = err.message === "Failed to fetch"
+        ? "Could not reach crt.sh — this is a known limitation of browser-based requests. Try a different domain or try again in a moment."
+        : err.message;
+      resultEl.innerHTML = `<div class="error-msg">✗ ${escHtml(msg)}</div>`;
       resultEl.classList.add("visible");
-    } finally {
-      enumBtn.disabled = false;
     }
   }
 
