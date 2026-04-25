@@ -479,7 +479,7 @@ def check_subdomain(subdomain: str, skip_wildcard: bool = False) -> dict:
     if same_owner(subdomain, cname_chain):
         reason = "CNAME points to a service owned by the same organization — not exploitable"
         _info(f"? {reason}")
-        return make_result(subdomain, cname_chain, False, reason, confidence="unknown", wildcard=wildcard)
+        return make_result(subdomain, cname_chain, False, reason, confidence="n/a", wildcard=wildcard)
 
     # ── NXDOMAIN check (dangling CNAME) ──────────────────────────────────
     if ended_in_nxdomain and not wildcard:
