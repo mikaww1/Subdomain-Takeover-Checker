@@ -265,6 +265,21 @@ FINGERPRINTS = {
     "mailgun.org":                  "The page you are looking for does not exist",
 }
 
+# ──────────────────────────────────────────────
+#  Same-owner pairs
+#  Subdomains of X pointing to Y are not exploitable
+#  because the same organization controls both sides.
+# ──────────────────────────────────────────────
+
+SAME_OWNER_PAIRS = [
+    ("github.com",      "github.io"),
+    ("google.com",      "googleusercontent.com"),
+    ("google.com",      "appspot.com"),
+    ("amazonaws.com",   "amazonaws.com"),
+    ("microsoft.com",   "azurewebsites.net"),
+    ("microsoft.com",   "azure.com"),
+]
+
 
 # ──────────────────────────────────────────────
 #  Helpers
@@ -287,6 +302,21 @@ def get_registrable_domain(subdomain: str) -> str:
     """
     parts = subdomain.split(".")
     return ".".join(parts[-2:]) if len(parts) >= 2 else subdomain
+
+
+def same_owner(subdomain: str, cname_chain: list[str]) -> bool:
+    """
+    Returns True if the CNAME target is owned by the same organization
+    as the subdomain. e.g. brandguide.github.com → *.github.io is not
+    exploitable because GitHub controls both sides.
+    """
+    subdomain_root = get_registrable_domain(subdomain)
+    for cname in cname_chain:
+        cname_root = get_registrable_domain(cname)
+        for owner_domain, service_domain in SAME_OWNER_PAIRS:
+            if subdomain_root == owner_domain and cname_root == service_domain:
+                return True
+    return False
 
 
 # ──────────────────────────────────────────────
@@ -444,6 +474,12 @@ def check_subdomain(subdomain: str, skip_wildcard: bool = False) -> dict:
 
     chain_display = " → ".join([subdomain] + cname_chain)
     _info(f"CNAME chain: {chain_display}")
+
+    # ── Same-owner check ─────────────────────────────────────────────────
+    if same_owner(subdomain, cname_chain):
+        reason = "CNAME points to a service owned by the same organization — not exploitable"
+        _info(f"? {reason}")
+        return make_result(subdomain, cname_chain, False, reason, confidence="unknown", wildcard=wildcard)
 
     # ── NXDOMAIN check (dangling CNAME) ──────────────────────────────────
     if ended_in_nxdomain and not wildcard:
