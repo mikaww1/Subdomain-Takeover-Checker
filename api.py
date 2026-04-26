@@ -3,6 +3,8 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from main import check_subdomain, normalize
+from flask import Response
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -37,6 +39,19 @@ def check():
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/sitemap.xml")
+def sitemap():
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/0.9">
+  <url>
+    <loc>https://www.subdomainchecker.com/</loc>
+    <lastmod>{datetime.today().strftime('%Y-%m-%d')}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>"""
+    return Response(xml, mimetype="application/xml")
 
 
 @app.errorhandler(429)
