@@ -43,7 +43,7 @@ def check():
 @app.route("/sitemap.xml")
 def sitemap():
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.subdomainchecker.com/</loc>
     <lastmod>{datetime.today().strftime('%Y-%m-%d')}</lastmod>
