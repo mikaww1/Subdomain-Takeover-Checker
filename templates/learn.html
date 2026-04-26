@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="What is a subdomain takeover? Learn how subdomain takeover attacks work, see real examples, and find out how to protect your domains from being hijacked.">
+<meta name="keywords" content="subdomain takeover, what is subdomain takeover, subdomain hijacking, dangling CNAME, DNS security, bug bounty">
+<meta property="og:title" content="What is a Subdomain Takeover? — SubdomainChecker">
+<meta property="og:description" content="Learn how subdomain takeover attacks work, see real examples, and find out how to protect your domains.">
+<meta property="og:url" content="https://subdomainchecker.com/learn">
+<meta property="og:type" content="article">
+<title>What is a Subdomain Takeover? | SubdomainChecker</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="shortcut icon" href="/static/favicon.png">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KGVDT8TEYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KGVDT8TEYH');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --surface:  #0f1318;
+    --border:   #1e2530;
+    --accent:   #00ff88;
+    --accent2:  #00c8ff;
+    --danger:   #ff3c5a;
+    --warn:     #ffc800;
+    --muted:    #4a5568;
+    --text:     #e2e8f0;
+    --text-dim: #718096;
+    --mono:     'Share Tech Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 2rem;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 4rem;
+  }
+
+  /* ── Nav ── */
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .nav-cta {
+    background: var(--accent);
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .nav-cta:hover { opacity: 0.85; }
+
+  /* ── Header ── */
+  .page-header {
+    margin-bottom: 3rem;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .page-tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+
+  h1 span {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .page-intro {
+    font-family: var(--mono);
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.8;
+    max-width: 580px;
+  }
+
+  /* ── Sections ── */
+  .section {
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  h2 .h2-tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    font-weight: 400;
+  }
+
+  p {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.85;
+    margin-bottom: 0.85rem;
+  }
+
+  p:last-child { margin-bottom: 0; }
+
+  strong { color: var(--text); font-weight: 400; }
+
+  /* ── Code block ── */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent2);
+    margin: 1rem 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+
+  .code-block .comment { color: var(--muted); }
+  .code-block .danger  { color: var(--danger); }
+  .code-block .warn    { color: var(--warn); }
+  .code-block .ok      { color: var(--accent); }
+
+  /* ── Example cards ── */
+  .example-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+
+  .example-header {
+    padding: 0.6rem 1rem;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .example-header.vuln { background: rgba(255,60,90,0.08); color: var(--danger); }
+  .example-header.safe { background: rgba(0,255,136,0.06); color: var(--accent); }
+  .example-header.info { background: rgba(0,200,255,0.06); color: var(--accent2); }
+
+  .example-body {
+    padding: 1rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+
+  .example-body .chain {
+    color: var(--accent2);
+    margin: 0.4rem 0;
+  }
+
+  .example-body .result-vuln { color: var(--danger); margin-top: 0.5rem; }
+  .example-body .result-safe { color: var(--accent); margin-top: 0.5rem; }
+
+  /* ── Steps ── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 1rem 0;
+  }
+
+  .step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+  }
+
+  .step-num {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    background: rgba(0,255,136,0.1);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 4px;
+    padding: 0.15rem 0.45rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .step-content {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .step-content strong { color: var(--text); }
+
+  /* ── Services grid ── */
+  .services-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 1rem 0;
+  }
+
+  .service-tag {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    background: rgba(0,200,255,0.06);
+    border: 1px solid rgba(0,200,255,0.15);
+    color: var(--accent2);
+  }
+
+  /* ── CTA box ── */
+  .cta-box {
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 3rem;
+  }
+
+  .cta-box h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .cta-box p {
+    font-size: 0.78rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.65rem 1.75rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .cta-btn:hover { opacity: 0.85; }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2rem 0;
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 480px) {
+    body { padding: 1rem; }
+    h1 { font-size: 1.6rem; }
+    .code-block { font-size: 0.72rem; }
+  }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(12px);  } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <nav>
+    <a href="/" class="nav-logo">// SubdomainChecker</a>
+    <a href="/" class="nav-cta">Try the Tool →</a>
+  </nav>
+
+  <div class="page-header">
+    <div class="page-tag">// Security Guide</div>
+    <h1>What is a <span>Subdomain Takeover</span>?</h1>
+    <p class="page-intro">
+      A subdomain takeover is a vulnerability that lets attackers claim control of a subdomain
+      that belongs to someone else — silently, and often undetected for months.
+      Here's how it works, why it happens, and how to protect yourself.
+    </p>
+  </div>
+
+  <!-- Section 1 -->
+  <div class="section">
+    <h2><span class="h2-tag">01 //</span> The basics</h2>
+    <p>
+      Every website has a domain. But most websites also have <strong>subdomains</strong> —
+      prefixes like <strong>shop.example.com</strong>, <strong>blog.example.com</strong>,
+      or <strong>api.example.com</strong> that point to different services or parts of the site.
+    </p>
+    <p>
+      Companies often point these subdomains to <strong>external services</strong> using a DNS record
+      called a <strong>CNAME</strong>. For example, a company might point their blog subdomain
+      to a Ghost or Webflow site:
+    </p>
+    <div class="code-block">
+      blog.example.com  →  CNAME  →  example.ghost.io  <span class="ok">✓ configured</span>
+    </div>
+    <p>
+      This works fine — until the company stops using that Ghost site and forgets to
+      clean up the DNS record.
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 2 -->
+  <div class="section">
+    <h2><span class="h2-tag">02 //</span> How the attack works</h2>
+    <p>
+      When the external service is deprovisioned but the CNAME record remains, the subdomain
+      becomes <strong>dangling</strong>. It points to an address that no longer has an owner.
+    </p>
+    <div class="code-block">
+      blog.example.com  →  CNAME  →  example.ghost.io  <span class="danger">✗ unclaimed</span>
+    </div>
+    <p>
+      An attacker who notices this can simply <strong>register that Ghost account</strong>
+      at the same address. Now they control what appears at <strong>blog.example.com</strong>
+      — a subdomain that looks completely legitimate to anyone visiting it.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">01</span>
+        <div class="step-content">
+          Company sets up <strong>blog.example.com → example.ghost.io</strong> and launches their blog.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <div class="step-content">
+          Company migrates to a new platform and deactivates the Ghost account —
+          but <strong>forgets to delete the CNAME record</strong>.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <div class="step-content">
+          Attacker scans DNS records, finds the dangling CNAME,
+          and <strong>registers example.ghost.io</strong>.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">04</span>
+        <div class="step-content">
+          Attacker now <strong>controls blog.example.com</strong> and can serve
+          phishing pages, steal session cookies, or damage the brand.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 3 -->
+  <div class="section">
+    <h2><span class="h2-tag">03 //</span> Real world examples</h2>
+    <p>
+      Subdomain takeovers are not theoretical. They appear regularly in bug bounty reports
+      and have been found on domains belonging to major companies.
+    </p>
+
+    <div class="example-card">
+      <div class="example-header vuln">⚠ Vulnerable — GitHub Pages</div>
+      <div class="example-body">
+        <div>Subdomain: <strong>shop.example.com</strong></div>
+        <div class="chain">shop.example.com → mystore.myshopify.com</div>
+        <div>The Shopify store at mystore.myshopify.com no longer exists.</div>
+        <div class="result-vuln">✗ VULNERABLE — Anyone can register this Shopify store and claim the subdomain.</div>
+      </div>
+    </div>
+
+    <div class="example-card">
+      <div class="example-header vuln">⚠ Vulnerable — Heroku</div>
+      <div class="example-body">
+        <div>Subdomain: <strong>staging.example.com</strong></div>
+        <div class="chain">staging.example.com → old-app.herokuapp.com</div>
+        <div>The Heroku app was deleted but the DNS record was never removed.</div>
+        <div class="result-vuln">✗ VULNERABLE — Dangling CNAME. The Heroku app address is unclaimed.</div>
+      </div>
+    </div>
+
+    <div class="example-card">
+      <div class="example-header safe">✓ Safe — Properly configured</div>
+      <div class="example-body">
+        <div>Subdomain: <strong>docs.example.com</strong></div>
+        <div class="chain">docs.example.com → example.readme.io</div>
+        <div>The Readme.io project exists and is actively configured.</div>
+        <div class="result-safe">✓ SAFE — Service is configured, fingerprint not present.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 4 -->
+  <div class="section">
+    <h2><span class="h2-tag">04 //</span> What can an attacker do?</h2>
+    <p>Once an attacker controls a subdomain, they can:</p>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">→</span>
+        <div class="step-content">
+          <strong>Serve phishing pages</strong> — the subdomain looks legitimate, making users
+          more likely to trust it and enter credentials.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">→</span>
+        <div class="step-content">
+          <strong>Steal session cookies</strong> — if the main domain shares cookies with subdomains,
+          an attacker can intercept authenticated sessions.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">→</span>
+        <div class="step-content">
+          <strong>Bypass Content Security Policy</strong> — a trusted subdomain can be used
+          to bypass CSP rules that allowlist the parent domain.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">→</span>
+        <div class="step-content">
+          <strong>Damage brand reputation</strong> — serving malicious or embarrassing content
+          under an official-looking company subdomain.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 5 -->
+  <div class="section">
+    <h2><span class="h2-tag">05 //</span> Vulnerable services</h2>
+    <p>
+      Subdomain takeovers are possible on any platform that lets users register custom subdomains
+      or custom domains. The most commonly exploited services include:
+    </p>
+    <div class="services-grid">
+      <span class="service-tag">GitHub Pages</span>
+      <span class="service-tag">Heroku</span>
+      <span class="service-tag">AWS S3</span>
+      <span class="service-tag">Azure</span>
+      <span class="service-tag">Vercel</span>
+      <span class="service-tag">Netlify</span>
+      <span class="service-tag">Cloudflare Pages</span>
+      <span class="service-tag">Shopify</span>
+      <span class="service-tag">Ghost</span>
+      <span class="service-tag">Webflow</span>
+      <span class="service-tag">Zendesk</span>
+      <span class="service-tag">Freshdesk</span>
+      <span class="service-tag">HubSpot</span>
+      <span class="service-tag">Fastly</span>
+      <span class="service-tag">Surge</span>
+      <span class="service-tag">Render</span>
+      <span class="service-tag">Fly.io</span>
+      <span class="service-tag">Squarespace</span>
+      <span class="service-tag">Tumblr</span>
+      <span class="service-tag">Notion</span>
+      <span class="service-tag">Gitbook</span>
+      <span class="service-tag">Supabase</span>
+      <span class="service-tag">+ 60 more</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Section 6 -->
+  <div class="section">
+    <h2><span class="h2-tag">06 //</span> How to protect yourself</h2>
+    <p>
+      The good news is that subdomain takeovers are completely preventable.
+      Here's what you should do:
+    </p>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">01</span>
+        <div class="step-content">
+          <strong>Audit your DNS records regularly.</strong> Keep an inventory of all your
+          subdomains and what service each one points to.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <div class="step-content">
+          <strong>Delete DNS records when decommissioning services.</strong> When you shut down
+          a service, the very first step should be removing the DNS record — before anything else.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <div class="step-content">
+          <strong>Check for dangling CNAMEs periodically.</strong> Run a takeover check on all
+          your subdomains every few months, especially after infrastructure changes.
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">04</span>
+        <div class="step-content">
+          <strong>Use a subdomain takeover checker.</strong> Automated tools can detect
+          dangling CNAMEs instantly across all your subdomains at once.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h3>Check your subdomains now — it's free</h3>
+    <p>
+      Enter any subdomain or root domain and instantly detect takeover vulnerabilities
+      across 80+ services. No account required.
+    </p>
+    <a href="/" class="cta-btn">Try SubdomainChecker →</a>
+  </div>
+
+</div>
+</body>
+</html>

@@ -53,6 +53,10 @@ def sitemap():
 </urlset>"""
     return Response(xml, mimetype="application/xml")
 
+@app.route("/learn")
+def learn():
+    return render_template("learn.html")
+
 
 @app.errorhandler(429)
 def rate_limit_exceeded(e):
