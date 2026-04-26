@@ -50,6 +50,12 @@ def sitemap():
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+  <url>
+    <loc>https://www.subdomainchecker.com/learn</loc>
+    <lastmod>{datetime.today().strftime('%Y-%m-%d')}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>"""
     return Response(xml, mimetype="application/xml")
 
