@@ -63,6 +63,60 @@ def sitemap():
 def learn():
     return render_template("learn.html")
 
+@app.route("/")
+def index():
+    return render_template("index.html",
+        page_title="Subdomain Takeover Checker — Free Online Tool",
+        page_description="Free subdomain takeover checker. Detect vulnerable subdomains by following CNAME chains and fingerprinting 80+ services including Heroku, Vercel, AWS S3, Azure, Shopify and more.",
+        page_heading='Subdomain<span>Checker</span>',
+        page_subtitle="Detect subdomain takeover vulnerabilities instantly."
+    )
+
+@app.route("/subdomain-takeover-checker")
+def subdomain_takeover_checker():
+    return render_template("index.html",
+        page_title="Subdomain Takeover Checker — Detect Vulnerable Subdomains",
+        page_description="Free subdomain takeover checker. Instantly detect dangling CNAMEs across 80+ services including Heroku, Vercel, AWS S3 and more.",
+        page_heading='Subdomain Takeover <span>Checker</span>',
+        page_subtitle="Instantly detect subdomain takeover vulnerabilities for free."
+    )
+
+@app.route("/cname-vulnerability-checker")
+def cname_checker():
+    return render_template("index.html",
+        page_title="CNAME Vulnerability Checker — Detect Dangling DNS Records",
+        page_description="Check any subdomain for dangling CNAME records and takeover vulnerabilities. Free tool, no account required.",
+        page_heading='CNAME Vulnerability <span>Checker</span>',
+        page_subtitle="Detect dangling CNAME records and takeover vulnerabilities instantly."
+    )
+
+@app.route("/dangling-cname-checker")
+def dangling_cname_checker():
+    return render_template("index.html",
+        page_title="Dangling CNAME Checker — Find Unclaimed DNS Records",
+        page_description="Detect dangling CNAME records that could lead to subdomain takeover. Free checker for bug bounty hunters and developers.",
+        page_heading='Dangling CNAME <span>Checker</span>',
+        page_subtitle="Find unclaimed DNS records before attackers do."
+    )
+
+@app.route("/subdomain-vulnerability-scanner")
+def subdomain_scanner():
+    return render_template("index.html",
+        page_title="Subdomain Vulnerability Scanner — Free Online Tool",
+        page_description="Scan subdomains for takeover vulnerabilities. Follows full CNAME chains and fingerprints 80+ services. Free, no account required.",
+        page_heading='Subdomain Vulnerability <span>Scanner</span>',
+        page_subtitle="Scan for subdomain takeover vulnerabilities across 80+ services."
+    )
+
+@app.route("/subdomain-hijacking-checker")
+def subdomain_hijacking_checker():
+    return render_template("index.html",
+        page_title="Subdomain Hijacking Checker — Detect & Prevent Takeovers",
+        page_description="Check if your subdomains are vulnerable to hijacking. Detects dangling CNAMEs across 80+ services including AWS, Azure, Heroku and more.",
+        page_heading='Subdomain Hijacking <span>Checker</span>',
+        page_subtitle="Detect and prevent subdomain hijacking vulnerabilities."
+    )
+
 
 @app.errorhandler(429)
 def rate_limit_exceeded(e):

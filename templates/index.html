@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="description" content="Free subdomain takeover checker. Detect vulnerable subdomains by following CNAME chains and fingerprinting 80+ services including Heroku, Vercel, AWS S3, Shopify and more.">
+<meta name="description" content="{{ page_description }}">
 <meta name="keywords" content="subdomain takeover, subdomain checker, CNAME takeover, bug bounty tools, subdomain vulnerability">
-<meta property="og:title" content="SubdomainChecker - Subdomain Takeover Detector">
-<meta property="og:description" content="Detect subdomain takeover vulnerabilities for free. Follows full CNAME chains, fingerprints 80+ services.">
+<meta property="og:title" content="{{ page_title }}">
+<meta property="og:description" content="{{ page_description }}">
 <meta property="og:url" content="https://subdomainchecker.com">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/static/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="/static/og-image.png">
-<title>Subdomain Takeover Checker</title>
+<title>{{ page_title }}</title>
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="shortcut icon" href="/static/favicon.png">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-KGVDT8TEYH"></script>
@@ -602,9 +600,8 @@
 
   <header>
     <div class="logo">// security tool</div>
-    <h1>Subdomain<span>Checker</span></h1>
-    <p class="subtitle">Detect subdomain takeover vulnerabilities instantly. <a href="/learn" style="color:var(--accent); text-decoration:none;">Learn how it works →</a></p>  </header>
-
+    <h1>{{ page_heading | safe }}</h1>
+    <p class="subtitle">{{ page_subtitle | safe }} <a href="/learn" style="color:var(--accent); text-decoration:none;">Learn how it works →</a></p>
   <div class="card">
 
     <!-- Mode toggle -->
