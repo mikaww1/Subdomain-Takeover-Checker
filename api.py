@@ -38,20 +38,28 @@ def check():
 
 @app.route("/sitemap.xml")
 def sitemap():
+    pages = [
+        ("https://www.subdomainchecker.com/", "weekly", "1.0"),
+        ("https://www.subdomainchecker.com/learn", "monthly", "0.8"),
+        ("https://www.subdomainchecker.com/subdomain-takeover-checker", "monthly", "0.9"),
+        ("https://www.subdomainchecker.com/cname-vulnerability-checker", "monthly", "0.8"),
+        ("https://www.subdomainchecker.com/dangling-cname-checker", "monthly", "0.8"),
+        ("https://www.subdomainchecker.com/subdomain-vulnerability-scanner", "monthly", "0.8"),
+        ("https://www.subdomainchecker.com/subdomain-hijacking-checker", "monthly", "0.8"),
+    ]
+    today = datetime.today().strftime('%Y-%m-%d')
+    urls = ""
+    for loc, freq, priority in pages:
+        urls += f"""
+  <url>
+    <loc>{loc}</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>{freq}</changefreq>
+    <priority>{priority}</priority>
+  </url>"""
+
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://www.subdomainchecker.com/</loc>
-    <lastmod>{datetime.today().strftime('%Y-%m-%d')}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://www.subdomainchecker.com/learn</loc>
-    <lastmod>{datetime.today().strftime('%Y-%m-%d')}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}
 </urlset>"""
     return Response(xml, mimetype="application/xml")
 
