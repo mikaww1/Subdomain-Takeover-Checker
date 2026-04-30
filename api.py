@@ -5,6 +5,8 @@ from flask_limiter.util import get_remote_address
 from main import check_subdomain, normalize
 from flask import Response
 from datetime import datetime
+from services_data import SERVICES
+
 
 app = Flask(__name__)
 CORS(app)
@@ -46,6 +48,7 @@ def sitemap():
         ("https://www.subdomainchecker.com/dangling-cname-checker", "monthly", "0.8"),
         ("https://www.subdomainchecker.com/subdomain-vulnerability-scanner", "monthly", "0.8"),
         ("https://www.subdomainchecker.com/subdomain-hijacking-checker", "monthly", "0.8"),
+        *[(f"https://www.subdomainchecker.com/subdomain-takeover/{slug}", "monthly", "0.7") for slug in SERVICES],
     ]
     today = datetime.today().strftime('%Y-%m-%d')
     urls = ""
@@ -121,6 +124,12 @@ def subdomain_hijacking_checker():
         page_subtitle="Detect and prevent subdomain hijacking vulnerabilities."
     )
 
+@app.route("/subdomain-takeover/<slug>")
+def service_page(slug):
+    service = SERVICES.get(slug)
+    if not service:
+        return "Page not found", 404
+    return render_template("service.html", service=service, slug=slug)
 
 @app.errorhandler(429)
 def rate_limit_exceeded(e):

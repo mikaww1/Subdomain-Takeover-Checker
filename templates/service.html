@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="{{ service.name }} subdomain takeover — how it works, how to detect it, and how to fix it. Free checker tool included.">
+<meta name="keywords" content="{{ service.name }} subdomain takeover, {{ service.name }} CNAME takeover, subdomain hijacking {{ service.name }}, dangling CNAME {{ service.name }}">
+<meta property="og:title" content="{{ service.name }} Subdomain Takeover — Detection & Fix">
+<meta property="og:description" content="Learn how {{ service.name }} subdomain takeovers work and how to detect them. Free checker tool included.">
+<meta property="og:url" content="https://subdomainchecker.com/subdomain-takeover/{{ slug }}">
+<meta property="og:type" content="article">
+<title>{{ service.name }} Subdomain Takeover — How to Detect & Fix It | SubdomainChecker</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="shortcut icon" href="/static/favicon.png">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-KGVDT8TEYH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-KGVDT8TEYH');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --surface:  #0f1318;
+    --border:   #1e2530;
+    --accent:   #00ff88;
+    --accent2:  #00c8ff;
+    --danger:   #ff3c5a;
+    --warn:     #ffc800;
+    --muted:    #4a5568;
+    --text:     #e2e8f0;
+    --text-dim: #718096;
+    --mono:     'Share Tech Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 2rem;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 4rem;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  .nav-cta {
+    background: var(--accent);
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .nav-cta:hover { opacity: 0.85; }
+
+  .page-header {
+    margin-bottom: 3rem;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .page-tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+  }
+
+  h1 span {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .page-intro {
+    font-family: var(--mono);
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+
+  .section {
+    margin-bottom: 2.5rem;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  h2 .h2-tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    font-weight: 400;
+  }
+
+  p {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.85;
+    margin-bottom: 0.85rem;
+  }
+
+  p:last-child { margin-bottom: 0; }
+  strong { color: var(--text); font-weight: 400; }
+
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--accent2);
+    margin: 1rem 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+
+  .code-block .danger { color: var(--danger); }
+  .code-block .ok     { color: var(--accent); }
+
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .info-card .label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  .info-card .value {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent2);
+  }
+
+  .fingerprint-card {
+    background: rgba(255,60,90,0.06);
+    border: 1px solid rgba(255,60,90,0.2);
+    border-radius: 8px;
+    padding: 0.85rem 1.1rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--danger);
+    margin: 1rem 0;
+  }
+
+  .fix-card {
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 8px;
+    padding: 0.85rem 1.1rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--accent);
+    margin: 1rem 0;
+    line-height: 1.7;
+  }
+
+  /* ── Embedded tool ── */
+  .tool-embed {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+  }
+
+  .tool-embed .tool-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    padding: 0.65rem 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]::placeholder { color: var(--muted); }
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,255,136,0.08);
+  }
+
+  button.primary {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.65rem 1.4rem;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  button.primary:hover  { opacity: 0.88; }
+  button.primary:active { transform: scale(0.97); }
+  button.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .loader {
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+  }
+  .loader.visible { display: flex; }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  #result {
+    margin-top: 1rem;
+    display: none;
+    animation: fadeUp 0.4s ease both;
+  }
+  #result.visible { display: block; }
+
+  .result-card {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .result-header.vulnerable { background: rgba(255,60,90,0.12); border-bottom: 1px solid rgba(255,60,90,0.3); color: var(--danger); }
+  .result-header.safe       { background: rgba(0,255,136,0.08); border-bottom: 1px solid rgba(0,255,136,0.2); color: var(--accent); }
+  .result-header.unknown    { background: rgba(255,200,0,0.08); border-bottom: 1px solid rgba(255,200,0,0.2); color: var(--warn); }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    margin-left: auto;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .badge.vuln { background: rgba(255,60,90,0.2);  color: var(--danger); }
+  .badge.safe { background: rgba(0,255,136,0.15); color: var(--accent); }
+  .badge.unk  { background: rgba(255,200,0,0.15); color: var(--warn); }
+
+  .result-body {
+    padding: 1rem 1.1rem;
+    background: var(--surface);
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .row {
+    display: flex;
+    gap: 0.75rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  .row-label { color: var(--text-dim); min-width: 100px; flex-shrink: 0; }
+  .row-value { color: var(--text); word-break: break-all; }
+
+  .error-msg {
+    padding: 0.85rem 1.1rem;
+    background: rgba(255,60,90,0.08);
+    border: 1px solid rgba(255,60,90,0.25);
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--danger);
+  }
+
+  /* ── FAQ ── */
+  .faq-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .faq-question {
+    width: 100%;
+    background: var(--surface);
+    border: none;
+    padding: 0.85rem 1.1rem;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: color 0.15s;
+  }
+
+  .faq-question:hover { color: var(--accent); }
+
+  .faq-chevron {
+    font-size: 0.65rem;
+    transition: transform 0.2s;
+    color: var(--text-dim);
+  }
+
+  .faq-question.open .faq-chevron { transform: rotate(180deg); }
+
+  .faq-answer {
+    display: none;
+    padding: 0.85rem 1.1rem;
+    background: var(--bg);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+  }
+
+  .faq-answer.visible { display: block; }
+
+  /* ── CTA ── */
+  .cta-box {
+    background: rgba(0,255,136,0.05);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-top: 3rem;
+  }
+
+  .cta-box h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .cta-box p  { font-size: 0.78rem; margin-bottom: 1.25rem; }
+
+  .cta-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.65rem 1.75rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .cta-btn:hover { opacity: 0.85; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+
+  @media (max-width: 480px) {
+    body { padding: 1rem; }
+    h1 { font-size: 1.6rem; }
+    .input-row { flex-direction: column; }
+    button.primary { width: 100%; }
+  }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(12px);  } to { opacity:1; transform:translateY(0); } }
+  @keyframes spin     { to   { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <nav>
+    <a href="/" class="nav-logo">// SubdomainChecker</a>
+    <a href="/" class="nav-cta">Try the Tool →</a>
+  </nav>
+
+  <div class="page-header">
+    <div class="page-tag">// Subdomain Takeover Guide</div>
+    <h1><span>{{ service.name }}</span> Subdomain Takeover</h1>
+    <p class="page-intro">
+      How {{ service.name }} subdomain takeovers work, how to detect them,
+      and how to fix them — with a free checker tool below.
+    </p>
+  </div>
+
+  <!-- What is it -->
+  <div class="section">
+    <h2><span class="h2-tag">01 //</span> What is a {{ service.name }} subdomain takeover?</h2>
+    <p>{{ service.description }}</p>
+    <p>{{ service.why_vulnerable }}</p>
+
+    <div class="code-block">
+      subdomain.yourdomain.com  →  CNAME  →  {{ service.cname_examples[0] }}  <span class="danger">✗ unclaimed</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Fingerprint -->
+  <div class="section">
+    <h2><span class="h2-tag">02 //</span> How to detect it</h2>
+    <p>
+      When a {{ service.name }} subdomain is vulnerable to takeover, the page returns
+      a specific error message known as a <strong>fingerprint</strong>.
+      If you see this response, the subdomain is claimable:
+    </p>
+    <div class="fingerprint-card">
+      ⚠ Fingerprint: "{{ service.fingerprint }}"
+    </div>
+    <p>
+      Detection involves two steps: following the full CNAME chain to check if the
+      final destination returns NXDOMAIN (domain doesn't exist), and checking the
+      HTTP response for the fingerprint above.
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Tool -->
+  <div class="section">
+    <h2><span class="h2-tag">03 //</span> Check your subdomain now</h2>
+    <p>
+      Enter any subdomain below to instantly check if it's vulnerable to a
+      {{ service.name }} takeover.
+    </p>
+
+    <div class="tool-embed">
+      <div class="tool-label">// Free checker</div>
+      <div class="input-row">
+        <input
+          type="text"
+          id="subdomainInput"
+          placeholder="{{ service.test_subdomain }}"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="primary" id="checkBtn" onclick="runCheck()">Check</button>
+      </div>
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <span>Checking...</span>
+      </div>
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- How to fix -->
+  <div class="section">
+    <h2><span class="h2-tag">04 //</span> How to fix it</h2>
+    <div class="fix-card">✓ {{ service.how_to_fix }}</div>
+    <p>
+      The golden rule: always remove DNS records <strong>before</strong> decommissioning
+      a service — not after. DNS cleanup should be the first step, not an afterthought.
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- FAQ -->
+  <div class="section">
+    <h2><span class="h2-tag">05 //</span> FAQ</h2>
+
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">
+        Is a {{ service.name }} subdomain takeover dangerous?
+        <span class="faq-chevron">▼</span>
+      </button>
+      <div class="faq-answer">
+        Yes. An attacker who controls your subdomain can serve phishing pages, steal session
+        cookies, bypass Content Security Policy, and damage your brand — all from what looks
+        like a legitimate URL belonging to your domain.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">
+        How common are {{ service.name }} subdomain takeovers?
+        <span class="faq-chevron">▼</span>
+      </button>
+      <div class="faq-answer">
+        Very common. Subdomain takeovers are one of the most frequently reported vulnerabilities
+        in bug bounty programs. {{ service.name }} is one of the most commonly affected services
+        because it's widely used and DNS records are rarely cleaned up when services are decommissioned.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">
+        How do I find all my subdomains pointing to {{ service.name }}?
+        <span class="faq-chevron">▼</span>
+      </button>
+      <div class="faq-answer">
+        Use the Enumerate mode on SubdomainChecker — enter your root domain and it will
+        automatically discover all subdomains via certificate transparency logs and check
+        each one for takeover vulnerabilities, including {{ service.name }}.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">
+        Can I check multiple subdomains at once?
+        <span class="faq-chevron">▼</span>
+      </button>
+      <div class="faq-answer">
+        Yes — use the Bulk mode on SubdomainChecker to check up to 10 subdomains at once,
+        or the Enumerate mode to automatically discover and check all subdomains for your domain.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-box">
+    <h3>Check all your subdomains for free</h3>
+    <p>
+      Use the full tool to enumerate subdomains, run bulk checks, and detect
+      takeover vulnerabilities across 80+ services.
+    </p>
+    <a href="/" class="cta-btn">Try SubdomainChecker →</a>
+  </div>
+
+</div>
+
+<script>
+  function toggleFaq(btn) {
+    const answer = btn.nextElementSibling;
+    const open = answer.classList.toggle("visible");
+    btn.classList.toggle("open", open);
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function statusAttrs(d) {
+    if (d.vulnerable)               return { cls: "vuln", badgeCls: "vuln", badgeText: "VULNERABLE" };
+    if (d.confidence === "unknown") return { cls: "unk",  badgeCls: "unk",  badgeText: "UNKNOWN" };
+    if (d.confidence === "n/a")     return { cls: "safe", badgeCls: "safe", badgeText: "N/A" };
+    return                                 { cls: "safe", badgeCls: "safe", badgeText: "SAFE" };
+  }
+
+  async function runCheck() {
+    const input   = document.getElementById("subdomainInput");
+    const btn     = document.getElementById("checkBtn");
+    const loader  = document.getElementById("loader");
+    const resultEl = document.getElementById("result");
+    const subdomain = input.value.trim();
+    if (!subdomain) { input.focus(); return; }
+
+    btn.disabled = true;
+    loader.classList.add("visible");
+    resultEl.classList.remove("visible");
+    resultEl.innerHTML = "";
+
+    try {
+      const res  = await fetch("/check", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ subdomain }),
+      });
+      const d = await res.json();
+      loader.classList.remove("visible");
+
+      if (d.error) {
+        resultEl.innerHTML = `<div class="error-msg">✗ ${escHtml(d.error)}</div>`;
+        resultEl.classList.add("visible");
+        return;
+      }
+
+      const { cls, badgeCls, badgeText } = statusAttrs(d);
+      const iconMap  = { vuln: "⚠", safe: "✓", unk: "?" };
+      const labelMap = {
+        vuln: "Subdomain takeover possible",
+        safe: d.confidence === "n/a" ? "No external service found" : "No takeover detected",
+        unk:  "Manual review recommended",
+      };
+      const headerClass = { vuln: "vulnerable", safe: "safe", unk: "unknown" };
+
+      let rows = `<div class="row"><span class="row-label">Subdomain</span><span class="row-value">${escHtml(d.subdomain)}</span></div>`;
+      rows += `<div class="row"><span class="row-label">Details</span><span class="row-value">${escHtml(d.reason)}</span></div>`;
+      if (d.service) rows += `<div class="row"><span class="row-label">Service</span><span class="row-value">${escHtml(d.service)}</span></div>`;
+      if (d.http_status) rows += `<div class="row"><span class="row-label">HTTP status</span><span class="row-value">${escHtml(String(d.http_status))}</span></div>`;
+
+      resultEl.innerHTML = `
+        <div class="result-card">
+          <div class="result-header ${headerClass[cls]}">
+            <span>${iconMap[cls]}</span>
+            <span>${labelMap[cls]}</span>
+            <span class="badge ${badgeCls}">${badgeText}</span>
+          </div>
+          <div class="result-body">${rows}</div>
+        </div>`;
+      resultEl.classList.add("visible");
+
+    } catch (err) {
+      loader.classList.remove("visible");
+      resultEl.innerHTML = `<div class="error-msg">✗ Could not reach the server.</div>`;
+      resultEl.classList.add("visible");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById("subdomainInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") runCheck();
+  });
+</script>
+</body>
+</html>
