@@ -129,7 +129,7 @@ def service_page(slug):
     service = SERVICES.get(slug)
     if not service:
         return "Page not found", 404
-    return render_template("service.html", service=service, slug=slug)
+    return render_template("service.html", service=service, slug=slug, all_services=SERVICES)
 
 @app.errorhandler(429)
 def rate_limit_exceeded(e):

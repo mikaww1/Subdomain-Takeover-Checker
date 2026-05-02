@@ -626,6 +626,25 @@
     <a href="/" class="cta-btn">Try SubdomainChecker →</a>
   </div>
 
+  <!-- Internal links to other service pages -->
+    <div class="section" style="margin-top: 2rem;">
+  <h2><span class="h2-tag">// </span> Check other services</h2>
+  <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem;">
+    {% for s, data in all_services.items() %}
+      {% if s != slug %}
+        <a href="/subdomain-takeover/{{ s }}"
+           style="font-family: var(--mono); font-size: 0.72rem; padding: 0.25rem 0.6rem;
+                  border: 1px solid var(--border); border-radius: 4px; color: var(--accent2);
+                  text-decoration: none; background: var(--surface); transition: border-color 0.15s;"
+           onmouseover="this.style.borderColor='var(--accent2)'"
+           onmouseout="this.style.borderColor='var(--border)'">
+          {{ data.name }}
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
 </div>
 
 <script>
